@@ -190,6 +190,10 @@ def write_daily(*, base, X, today, contrib, pos, bt, ev, live, cfg, engine, meta
     L = [f"# {cfg['symbol']} {cfg.get('name', '')} 每日加碼報告｜{d:%Y-%m-%d}（收盤 {close:.2f}）", ""]
     if "DEMO" in meta.get("sources", {}).values():
         L += ["> ⚠️ 本報告使用模擬資料，僅供測試程式，不代表真實行情。", ""]
+    stale = int(meta.get("stale_days", 0) or 0)
+    if stale:
+        L += [f"> ⚠️ 資料只到 {d:%Y-%m-%d}，比最近交易日少 {stale} 天（資料源尚未更新）；以下評分用的是舊價格。", ""]
+    L += [f"資料截止：**{d:%Y-%m-%d}**" + ("" if stale else "（已是最新交易日）"), ""]
     L += ["## 結論", "",
           f"**加碼評分：{sc:.0f} / 100 → {sig}**（信心 {conf}）", ""]
     L += [f"- {x}" for x in advice(sig, cfg, close, pos)]
@@ -268,6 +272,7 @@ def write_daily(*, base, X, today, contrib, pos, bt, ev, live, cfg, engine, meta
         "backtest": {"signal_xirr": s["xirr"], "dca_xirr": c["xirr"], "cost_diff": bt["cost_diff"]},
         "evaluation": {k: v for k, v in ev.items() if k != "calibration"},
         "live": live, "engine": engine, "data_source": meta.get("sources"), "generated_at": now,
+        "data_stale_days": int(meta.get("stale_days", 0) or 0), "data_warnings": meta.get("warnings", []),
     }
     (REPORTS / "latest.json").write_text(json.dumps(js, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
     return js

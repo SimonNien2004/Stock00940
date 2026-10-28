@@ -144,6 +144,11 @@ def update_all(cfg: dict) -> dict:
         try:
             yf_price, _ = _yf_price_and_div(symbol, (pd.Timestamp(price["date"].max()) - pd.Timedelta(days=10)).strftime("%Y-%m-%d"))
             newer = yf_price[yf_price["date"] > str(price["date"].max())]
+            # yfinance 在資料還沒出來時會塞一筆「成交量 0、開高低收全同」的佔位資料，丟掉
+            fake = newer[pd.to_numeric(newer["volume"], errors="coerce").fillna(0) <= 0]
+            if len(fake):
+                meta["warnings"].append(f"yfinance 的 {', '.join(fake['date'])} 成交量為 0（佔位資料），已略過")
+                newer = newer.drop(fake.index)
             if len(newer):
                 price = pd.concat([price, newer], ignore_index=True)
                 meta["sources"]["price"] = "FinMind＋yfinance"
@@ -153,7 +158,11 @@ def update_all(cfg: dict) -> dict:
 
     last = pd.Timestamp(price["date"].max())
     expected = pd.Timestamp(date.today()) - pd.offsets.BDay(0 if pd.Timestamp.now(tz="Asia/Taipei").hour >= 15 else 1)
-    behind = len(pd.bdate_range(last + pd.Timedelta(days=1), expected))
+    holidays = {str(h) for h in cfg.get("market_holidays", [])}
+    missing = [d for d in pd.bdate_range(last + pd.Timedelta(days=1), expected) if f"{d:%Y-%m-%d}" not in holidays]
+    behind = len(missing)
+    meta["expected_date"] = f"{expected:%Y-%m-%d}"
+    meta["stale_days"] = behind
     if behind >= 1:
         meta["warnings"].append(f"價格資料停在 {last:%Y-%m-%d}，比最近的工作日少 {behind} 天（可能是休市，或資料源還沒更新）")
 

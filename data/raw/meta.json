@@ -1,5 +1,5 @@
 {
-  "fetched_at": "2026-11-27",
+  "fetched_at": "2026-11-28",
   "sources": {
     "price": "FinMind",
     "dividends": "FinMind",
@@ -7,7 +7,7 @@
     "inst": "FinMind"
   },
   "warnings": [],
-  "expected_date": "2026-11-26",
+  "expected_date": "2026-11-27",
   "stale_days": 0,
-  "last_price_date": "2026-11-26"
+  "last_price_date": "2026-11-27"
 }
